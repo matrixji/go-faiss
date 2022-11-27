@@ -1,0 +1,17 @@
+run:
+  go: '1.19'
+
+linters:
+  enable:
+    - goimports
+    - misspell
+    - gosec
+    - revive
+
+linters-settings:
+  misspell:
+    locale: US
+
+service:
+  golangci-lint-version: 1.50.1
+
