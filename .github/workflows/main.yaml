@@ -1,0 +1,59 @@
+name: "Code Check"
+
+on:
+  push:
+    branches:
+      - "main"
+      - "dev"
+  pull_request:
+
+jobs:
+  ut:
+    name: "Code check with faiss ${{ matrix.faiss_version }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        faiss_version: [v1.7.3]
+    env:
+      os: ubuntu
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          path: go-faiss
+      - name: Checkout faiss
+        uses: actions/checkout@v3
+        with:
+          repository: facebookresearch/faiss
+          path: faiss
+          ref: ${{ matrix.faiss_version }}
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '^1.19.3'
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install libopenblas-dev
+      - name: Build faiss
+        run: |
+          mkdir -p ${{ github.workspace }}/faiss/build
+          cd ${{ github.workspace }}/faiss/build
+          cmake -DFAISS_ENABLE_GPU=OFF \
+                -DFAISS_ENABLE_PYTHON=OFF \
+                -DBUILD_TESTING=OFF \
+                -DFAISS_ENABLE_C_API=ON \
+                -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/dest \
+                ..
+          make -j $(nproc)
+      - name: Build and test for go-faiss
+        run: |
+          cd go-faiss
+          CGO_CFLAGS="-I${{ github.workspace }}/faiss"
+          CGO_CFLAGS="${CGO_CFLAGS} -I${{ github.workspace }}"
+          export CGO_CFLAGS="${CGO_CFLAGS} $(go env CGO_CFLAGS)"
+          CGO_LDFLAGS="-L${{ github.workspace }}/faiss/build/faiss"
+          CGO_LDFLAGS="${CGO_LDFLAGS} -L${{ github.workspace }}/faiss/build/c_api"
+          export CGO_LDFLAGS="${CGO_LDFLAGS} $(go env CGO_LDFLAGS)"
+          go build ./faiss/...
+          go test ./faiss/...
