@@ -4,12 +4,26 @@ package faiss
 import "C"
 import "runtime"
 
-type IDSelector struct {
+// IDSelector is intended to define a subset of vectors to handle (for removal
+// * or as subset to search)
+// Only IDSelectorRange and IDSelectorBatch ported by
+// NewIDSelectorRange and NewIDSelectorBatch due to faiss's c_api
+type IDSelector interface {
+	Ptr() *C.FaissIDSelector
+}
+
+// abstract IDSelector
+type baseIDSelector struct {
 	ptr *C.FaissIDSelector
 }
 
-// Free destroy the resource for IDSelector
-func (selector *IDSelector) Free() {
+// Ptr return the internal FaissIDSelector pointer
+func (selector *baseIDSelector) Ptr() *C.FaissIDSelector {
+	return selector.ptr
+}
+
+// free destroy the resource for baseIDSelector
+func (selector *baseIDSelector) free() {
 	if selector.ptr != nil {
 		C.faiss_IDSelector_free(selector.ptr)
 		selector.ptr = nil
@@ -17,19 +31,19 @@ func (selector *IDSelector) Free() {
 }
 
 // NewIDSelectorRange creates a selector for remove IDs: [imin, imax)
-func NewIDSelectorRange(imin, imax int64) (*IDSelector, error) {
+func NewIDSelectorRange(imin, imax int64) (IDSelector, error) {
 	var ptr *C.FaissIDSelectorRange
 	ret := C.faiss_IDSelectorRange_new(&ptr, C.idx_t(imin), C.idx_t(imax))
 	if ret != 0 {
 		return nil, GetLastError()
 	}
-	result := IDSelector{(*C.FaissIDSelector)(ptr)}
-	runtime.SetFinalizer(result, func(r IDSelector) { r.Free() })
+	result := baseIDSelector{(*C.FaissIDSelector)(ptr)}
+	runtime.SetFinalizer(&result, func(r baseIDSelector) { r.free() })
 	return &result, nil
 }
 
 // NewIDSelectorBatch creates a new batch selector with indices.
-func NewIDSelectorBatch(indices []int64) (*IDSelector, error) {
+func NewIDSelectorBatch(indices []int64) (IDSelector, error) {
 	var ptr *C.FaissIDSelectorBatch
 	if ret := C.faiss_IDSelectorBatch_new(
 		&ptr,
@@ -38,7 +52,7 @@ func NewIDSelectorBatch(indices []int64) (*IDSelector, error) {
 	); ret != 0 {
 		return nil, GetLastError()
 	}
-	result := IDSelector{(*C.FaissIDSelector)(ptr)}
-	runtime.SetFinalizer(result, func(r IDSelector) { r.Free() })
+	result := baseIDSelector{(*C.FaissIDSelector)(ptr)}
+	runtime.SetFinalizer(&result, func(r baseIDSelector) { r.free() })
 	return &result, nil
 }

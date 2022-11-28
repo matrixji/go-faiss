@@ -8,11 +8,16 @@ import (
 	"unsafe"
 )
 
-// NewIndex create index by metric with faiss's index_factory
-func NewIndex(d int, description string, metric MetricType) (*Index, error) {
+// NewIndex create index by metric with faiss's index_factory,
+// d for dimensions, metric for metric type,
+// description is a comma-separated list of components.
+// Returns the created index and error.
+//
+// More details, see: https://github.com/facebookresearch/faiss/wiki/The-index-factory
+func NewIndex(d int, description string, metric MetricType) (Index, error) {
 	desc := C.CString(description)
 	defer C.free(unsafe.Pointer(desc))
-	var index Index
+	var index baseIndex
 	if ret := C.faiss_index_factory(
 		&index.ptr,
 		C.int(d),
@@ -21,6 +26,6 @@ func NewIndex(d int, description string, metric MetricType) (*Index, error) {
 	); ret != 0 {
 		return nil, GetLastError()
 	}
-	runtime.SetFinalizer(index, func(r Index) { r.Free() })
+	runtime.SetFinalizer(&index, func(r *baseIndex) { r.free() })
 	return &index, nil
 }
