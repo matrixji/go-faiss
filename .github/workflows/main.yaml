@@ -55,5 +55,27 @@ jobs:
           CGO_LDFLAGS="-L${{ github.workspace }}/faiss/build/faiss"
           CGO_LDFLAGS="${CGO_LDFLAGS} -L${{ github.workspace }}/faiss/build/c_api"
           export CGO_LDFLAGS="${CGO_LDFLAGS} $(go env CGO_LDFLAGS)"
-          go build ./faiss/...
-          go test ./faiss/...
+
+          go build ./...
+          go test ./...
+      - name: Run coverage
+        if: ${{ matrix.faiss_version == 'v1.7.3' }}
+        run: |
+          cd go-faiss
+          CGO_CFLAGS="-I${{ github.workspace }}/faiss"
+          CGO_CFLAGS="${CGO_CFLAGS} -I${{ github.workspace }}"
+          export CGO_CFLAGS="${CGO_CFLAGS} $(go env CGO_CFLAGS)"
+          CGO_LDFLAGS="-L${{ github.workspace }}/faiss/build/faiss"
+          CGO_LDFLAGS="${CGO_LDFLAGS} -L${{ github.workspace }}/faiss/build/c_api"
+          export CGO_LDFLAGS="${CGO_LDFLAGS} $(go env CGO_LDFLAGS)"
+
+          go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+      - name: Upload coverage to Codecov
+        if: ${{ matrix.faiss_version == 'v1.7.3' }}
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
+          files: ./go-faiss/coverage.txt
+          verbose: true
+          fail_ci_if_error: true
+
