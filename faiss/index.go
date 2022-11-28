@@ -190,6 +190,7 @@ func (index *baseIndex) RemoveIDs(selector IDSelector) (int, error) {
 	return int(removed), nil
 }
 
+// The following functions are rarely used and will be implemented later
 // TODO: reconstruct
 // TODO: reconstruct_n
 // TODO: compute_residual
