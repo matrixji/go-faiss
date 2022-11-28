@@ -33,7 +33,7 @@ func NewRangeSearchResult(nq int) (*RangeSearchResult, error) {
 		return nil, GetLastError()
 	}
 	result := RangeSearchResult{ptr: ptr}
-	runtime.SetFinalizer(result, func(r *RangeSearchResult) { r.Free() })
+	runtime.SetFinalizer(&result, func(r *RangeSearchResult) { r.Free() })
 	return &result, nil
 }
 
