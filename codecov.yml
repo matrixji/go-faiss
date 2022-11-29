@@ -8,7 +8,7 @@ comment:
     - main
 
 fixes:
-  - "github.com/matrixji/go-faiss/::"
+  - "go-faiss/go-faiss::go-faiss"
 
 ignore:
   - "LICENSES"
