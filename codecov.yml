@@ -8,7 +8,7 @@ comment:
     - main
 
 fixes:
-  - "go-faiss/go-faiss::go-faiss"
+  - "^go-faiss/::"
 
 ignore:
   - "LICENSES"
