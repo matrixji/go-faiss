@@ -2,8 +2,10 @@ package faiss_test
 
 import (
 	"fmt"
+	"testing"
 
 	"github.com/matrixji/go-faiss/faiss"
+	"github.com/stretchr/testify/assert"
 )
 
 func ExampleNewIndex() {
@@ -36,4 +38,10 @@ func ExampleNewIndex() {
 	// Create index err=<nil>, dimension=4, total=0
 	// Add to index err=<nil>, total=2
 	// Search index err=<nil>, ids: 0 1, distances: 1.00 0.80
+}
+
+func TestNonExistIndex(t *testing.T) {
+	index, err := faiss.NewIndex(4, "NonExist", faiss.MetricInnerProduct)
+	assert.Nil(t, index)
+	assert.NotNil(t, err)
 }
