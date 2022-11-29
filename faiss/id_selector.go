@@ -38,7 +38,7 @@ func NewIDSelectorRange(imin, imax int64) (IDSelector, error) {
 		return nil, GetLastError()
 	}
 	result := baseIDSelector{(*C.FaissIDSelector)(ptr)}
-	runtime.SetFinalizer(&result, func(r baseIDSelector) { r.free() })
+	runtime.SetFinalizer(&result, func(r *baseIDSelector) { r.free() })
 	return &result, nil
 }
 
@@ -52,7 +52,7 @@ func NewIDSelectorBatch(indices []int64) (IDSelector, error) {
 	); ret != 0 {
 		return nil, GetLastError()
 	}
-	result := baseIDSelector{(*C.FaissIDSelector)(ptr)}
-	runtime.SetFinalizer(&result, func(r baseIDSelector) { r.free() })
+	result := baseIDSelector{ptr: (*C.FaissIDSelector)(ptr)}
+	runtime.SetFinalizer(&result, func(r *baseIDSelector) { r.free() })
 	return &result, nil
 }
