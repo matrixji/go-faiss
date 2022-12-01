@@ -58,7 +58,25 @@ type Index interface {
 }
 
 type baseIndex struct {
-	ptr *C.FaissIndex
+	ptr           *C.FaissIndex // c pointer
+	internalIndex *baseIndex    // internal index for support AsFooIndex
+}
+
+func (index *baseIndex) Ptr() *C.FaissIndex {
+	if index.ptr != nil {
+		return index.ptr
+	}
+	if index.internalIndex != nil {
+		return index.internalIndex.Ptr()
+	}
+	return nil
+}
+
+func (index *baseIndex) BaseIndex() *baseIndex {
+	if index.internalIndex != nil {
+		return index.internalIndex.BaseIndex()
+	}
+	return index
 }
 
 func (index *baseIndex) free() {
@@ -66,28 +84,29 @@ func (index *baseIndex) free() {
 		C.faiss_Index_free(index.ptr)
 		index.ptr = nil
 	}
+	index.internalIndex = nil
 }
 
 func (index *baseIndex) D() int {
-	return int(C.faiss_Index_d(index.ptr))
+	return int(C.faiss_Index_d(index.Ptr()))
 }
 
 func (index *baseIndex) IsTrained() bool {
-	return C.faiss_Index_is_trained(index.ptr) != 0
+	return C.faiss_Index_is_trained(index.Ptr()) != 0
 }
 
 func (index *baseIndex) Ntotal() int64 {
-	return int64(C.faiss_Index_ntotal(index.ptr))
+	return int64(C.faiss_Index_ntotal(index.Ptr()))
 }
 
 func (index *baseIndex) MetricType() MetricType {
-	return MetricType(int(C.faiss_Index_metric_type(index.ptr)))
+	return MetricType(int(C.faiss_Index_metric_type(index.Ptr())))
 }
 
 func (index *baseIndex) Train(x []float32) error {
 	n := len(x) / index.D()
 	if n := C.faiss_Index_train(
-		index.ptr,
+		index.Ptr(),
 		C.idx_t(n),
 		(*C.float)(&x[0]),
 	); n != 0 {
@@ -99,7 +118,7 @@ func (index *baseIndex) Train(x []float32) error {
 func (index *baseIndex) Add(x []float32) error {
 	n := len(x) / index.D()
 	if n := C.faiss_Index_add(
-		index.ptr,
+		index.Ptr(),
 		C.idx_t(n),
 		(*C.float)(&x[0]),
 	); n != 0 {
@@ -111,7 +130,7 @@ func (index *baseIndex) Add(x []float32) error {
 func (index *baseIndex) AddWithIDs(x []float32, xids []int64) error {
 	n := len(x) / index.D()
 	if n := C.faiss_Index_add_with_ids(
-		index.ptr,
+		index.Ptr(),
 		C.idx_t(n),
 		(*C.float)(&x[0]),
 		(*C.idx_t)(&xids[0]),
@@ -128,7 +147,7 @@ func (index *baseIndex) Search(x []float32, k int64) (
 	distances := make([]float32, int64(n)*k)
 	labels := make([]int64, int64(n)*k)
 	if c := C.faiss_Index_search(
-		index.ptr,
+		index.Ptr(),
 		C.idx_t(n),
 		(*C.float)(&x[0]),
 		C.idx_t(k),
@@ -149,7 +168,7 @@ func (index *baseIndex) RangeSearch(x []float32, radius float32) (
 		return nil, err
 	}
 	if c := C.faiss_Index_range_search(
-		index.ptr,
+		index.Ptr(),
 		C.idx_t(n),
 		(*C.float)(&x[0]),
 		C.float(radius),
@@ -164,7 +183,7 @@ func (index *baseIndex) Assign(x []float32, k int64) ([]int64, error) {
 	n := len(x) / index.D()
 	labels := make([]int64, int64(n)*k)
 	if c := C.faiss_Index_assign(
-		index.ptr,
+		index.Ptr(),
 		C.idx_t(n),
 		(*C.float)(&x[0]),
 		(*C.idx_t)(&labels[0]),
@@ -176,7 +195,7 @@ func (index *baseIndex) Assign(x []float32, k int64) ([]int64, error) {
 }
 
 func (index *baseIndex) Reset() error {
-	if c := C.faiss_Index_reset(index.ptr); c != 0 {
+	if c := C.faiss_Index_reset(index.Ptr()); c != 0 {
 		return GetLastError()
 	}
 	return nil
@@ -184,7 +203,7 @@ func (index *baseIndex) Reset() error {
 
 func (index *baseIndex) RemoveIDs(selector IDSelector) (int, error) {
 	var removed C.size_t
-	if c := C.faiss_Index_remove_ids(index.ptr, selector.Ptr(), &removed); c != 0 {
+	if c := C.faiss_Index_remove_ids(index.Ptr(), selector.Ptr(), &removed); c != 0 {
 		return 0, GetLastError()
 	}
 	return int(removed), nil

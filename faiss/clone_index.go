@@ -12,8 +12,8 @@ func CloneIndex(index Index) (Index, error) {
 		return nil, errors.New("input index is not a baseIndex")
 	}
 	var newIndex *C.FaissIndex
-	if ret := C.faiss_clone_index(concreteIndex.ptr, &newIndex); ret == 0 {
-		return &baseIndex{newIndex}, nil
+	if ret := C.faiss_clone_index(concreteIndex.Ptr(), &newIndex); ret == 0 {
+		return &baseIndex{newIndex, nil}, nil
 	}
 	return nil, GetLastError()
 }

@@ -9,6 +9,7 @@ import "runtime"
 // Only IDSelectorRange and IDSelectorBatch ported by
 // NewIDSelectorRange and NewIDSelectorBatch due to faiss's c_api
 type IDSelector interface {
+	// Ptr return the c pointer to FaissIDSelector
 	Ptr() *C.FaissIDSelector
 }
 
@@ -23,7 +24,7 @@ func (selector *baseIDSelector) Ptr() *C.FaissIDSelector {
 }
 
 // free destroy the resource for baseIDSelector
-func (selector *baseIDSelector) free() {
+func free(selector *baseIDSelector) {
 	if selector.ptr != nil {
 		C.faiss_IDSelector_free(selector.ptr)
 		selector.ptr = nil
@@ -37,9 +38,9 @@ func NewIDSelectorRange(imin, imax int64) (IDSelector, error) {
 	if ret != 0 {
 		return nil, GetLastError()
 	}
-	result := baseIDSelector{(*C.FaissIDSelector)(ptr)}
-	runtime.SetFinalizer(&result, func(r *baseIDSelector) { r.free() })
-	return &result, nil
+	selector := baseIDSelector{(*C.FaissIDSelector)(ptr)}
+	runtime.SetFinalizer(&selector, free)
+	return &selector, nil
 }
 
 // NewIDSelectorBatch creates a new batch selector with indices.
@@ -52,7 +53,7 @@ func NewIDSelectorBatch(indices []int64) (IDSelector, error) {
 	); ret != 0 {
 		return nil, GetLastError()
 	}
-	result := baseIDSelector{ptr: (*C.FaissIDSelector)(ptr)}
-	runtime.SetFinalizer(&result, func(r *baseIDSelector) { r.free() })
-	return &result, nil
+	selector := baseIDSelector{ptr: (*C.FaissIDSelector)(ptr)}
+	runtime.SetFinalizer(&selector, free)
+	return &selector, nil
 }

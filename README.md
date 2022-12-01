@@ -7,4 +7,4 @@ go-faiss is a golang binding for [faiss](https://github.com/facebookresearch/fai
 ## LICENSE
 
 go-faiss is licensed under [MIT LICENSE](https://raw.githubusercontent.com/matrixji/go-faiss/main/LICENSE),
-and the original faiss library is licensed under [MIT LICENSE](https://raw.githubusercontent.com/facebookresearch/faiss/main/LICENSE)
+and the original faiss library is licensed under [MIT LICENSE](https://raw.githubusercontent.com/facebookresearch/faiss/main/LICENSE) 
