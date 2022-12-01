@@ -52,16 +52,55 @@ func (index *IndexFlat) ComputeDistanceSubset(
 	return nil, GetLastError()
 }
 
-// AsFlatIndex casts index to flat index.
+// AsIndexFlat casts index to flat index.
 // Returns nil if not a flat index
-func AsFlatIndex(index Index) *IndexFlat {
+func AsIndexFlat(index Index) *IndexFlat {
 	myBaseIndex, ok := index.(*baseIndex)
 	if !ok {
 		return nil
 	}
-	ptr := C.faiss_IndexFlat_cast(myBaseIndex.ptr)
+
+	// return if could cast in golang level
+	myIndexFlat, ok := index.(*IndexFlat)
+	if ok {
+		return myIndexFlat
+	}
+
+	// cast at c_api level
+	ptr := C.faiss_IndexFlat_cast(myBaseIndex.Ptr())
 	if ptr == nil {
 		return nil
 	}
 	return &IndexFlat{baseIndex{ptr: nil, internalIndex: myBaseIndex}}
 }
+
+type IndexFlatIP struct {
+	IndexFlat
+}
+
+// NewIndexFlatIP creates a new IP metric flat index with dimension.
+// Returns the new index and error
+func NewIndexFlatIP(d int) (*IndexFlatIP, error) {
+	index, err := NewIndexFlat(d, MetricInnerProduct)
+	if err != nil {
+		return nil, err
+	}
+	return &IndexFlatIP{*index}, nil
+}
+
+type IndexFlatL2 struct {
+	IndexFlat
+}
+
+// NewIndexFlatL2 creates a new L2 metric flat index with dimension.
+// Returns the new index and error
+func NewIndexFlatL2(d int) (*IndexFlatL2, error) {
+	index, err := NewIndexFlat(d, MetricL2)
+	if err != nil {
+		return nil, err
+	}
+	return &IndexFlatL2{*index}, nil
+}
+
+// TODO: RefineFlat
+// TODO: Flat1D

@@ -3,6 +3,7 @@ package faiss
 // #include <stdlib.h>
 // #include <faiss/c_api/Index_c.h>
 import "C"
+import "runtime"
 
 // Index interface from faiss's Index class.
 //
@@ -62,6 +63,23 @@ type baseIndex struct {
 	internalIndex *baseIndex    // internal index for support AsFooIndex
 }
 
+// NewBaseIndex new baseIndex from C faiss index pointer
+func NewBaseIndex(ptr *C.FaissIndex) *baseIndex {
+	ret := &baseIndex{ptr, nil}
+	runtime.SetFinalizer(ret, func(index *baseIndex) { index.Free() })
+	return ret
+}
+
+// Free destroy the resource for index
+func (index *baseIndex) Free() {
+	if index.ptr != nil {
+		C.faiss_Index_free(index.ptr)
+		index.ptr = nil
+	}
+	index.internalIndex = nil
+}
+
+// Ptr returns the raw c_api pointer
 func (index *baseIndex) Ptr() *C.FaissIndex {
 	if index.ptr != nil {
 		return index.ptr
@@ -72,19 +90,12 @@ func (index *baseIndex) Ptr() *C.FaissIndex {
 	return nil
 }
 
+// BaseIndex returns the base internal index which holding the c api index pointer
 func (index *baseIndex) BaseIndex() *baseIndex {
 	if index.internalIndex != nil {
 		return index.internalIndex.BaseIndex()
 	}
 	return index
-}
-
-func (index *baseIndex) free() {
-	if index.ptr != nil {
-		C.faiss_Index_free(index.ptr)
-		index.ptr = nil
-	}
-	index.internalIndex = nil
 }
 
 func (index *baseIndex) D() int {
