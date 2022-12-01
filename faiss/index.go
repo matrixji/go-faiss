@@ -3,7 +3,9 @@ package faiss
 // #include <stdlib.h>
 // #include <faiss/c_api/Index_c.h>
 import "C"
-import "runtime"
+import (
+	"runtime"
+)
 
 // Index interface from faiss's Index class.
 //
@@ -56,16 +58,22 @@ type Index interface {
 	// RemoveIDs removes the vectors specified by selector from the index.
 	// Returns the number of elements removed and error
 	RemoveIDs(selector IDSelector) (int, error)
+
+	//
+	// non faiss interface below
+	//
+
+	// Ptr returns raw c_api pointer
+	Ptr() *C.FaissIndex
 }
 
 type baseIndex struct {
-	ptr           *C.FaissIndex // c pointer
-	internalIndex *baseIndex    // internal index for support AsFooIndex
+	ptr *C.FaissIndex // c pointer
 }
 
 // NewBaseIndex new baseIndex from C faiss index pointer
 func NewBaseIndex(ptr *C.FaissIndex) *baseIndex {
-	ret := &baseIndex{ptr, nil}
+	ret := &baseIndex{ptr}
 	runtime.SetFinalizer(ret, func(index *baseIndex) { index.Free() })
 	return ret
 }
@@ -76,48 +84,28 @@ func (index *baseIndex) Free() {
 		C.faiss_Index_free(index.ptr)
 		index.ptr = nil
 	}
-	index.internalIndex = nil
-}
-
-// Ptr returns the raw c_api pointer
-func (index *baseIndex) Ptr() *C.FaissIndex {
-	if index.ptr != nil {
-		return index.ptr
-	}
-	if index.internalIndex != nil {
-		return index.internalIndex.Ptr()
-	}
-	return nil
-}
-
-// BaseIndex returns the base internal index which holding the c api index pointer
-func (index *baseIndex) BaseIndex() *baseIndex {
-	if index.internalIndex != nil {
-		return index.internalIndex.BaseIndex()
-	}
-	return index
 }
 
 func (index *baseIndex) D() int {
-	return int(C.faiss_Index_d(index.Ptr()))
+	return int(C.faiss_Index_d(index.ptr))
 }
 
 func (index *baseIndex) IsTrained() bool {
-	return C.faiss_Index_is_trained(index.Ptr()) != 0
+	return C.faiss_Index_is_trained(index.ptr) != 0
 }
 
 func (index *baseIndex) Ntotal() int64 {
-	return int64(C.faiss_Index_ntotal(index.Ptr()))
+	return int64(C.faiss_Index_ntotal(index.ptr))
 }
 
 func (index *baseIndex) MetricType() MetricType {
-	return MetricType(int(C.faiss_Index_metric_type(index.Ptr())))
+	return MetricType(int(C.faiss_Index_metric_type(index.ptr)))
 }
 
 func (index *baseIndex) Train(x []float32) error {
 	n := len(x) / index.D()
 	if n := C.faiss_Index_train(
-		index.Ptr(),
+		index.ptr,
 		C.idx_t(n),
 		(*C.float)(&x[0]),
 	); n != 0 {
@@ -129,7 +117,7 @@ func (index *baseIndex) Train(x []float32) error {
 func (index *baseIndex) Add(x []float32) error {
 	n := len(x) / index.D()
 	if n := C.faiss_Index_add(
-		index.Ptr(),
+		index.ptr,
 		C.idx_t(n),
 		(*C.float)(&x[0]),
 	); n != 0 {
@@ -141,7 +129,7 @@ func (index *baseIndex) Add(x []float32) error {
 func (index *baseIndex) AddWithIDs(x []float32, xids []int64) error {
 	n := len(x) / index.D()
 	if n := C.faiss_Index_add_with_ids(
-		index.Ptr(),
+		index.ptr,
 		C.idx_t(n),
 		(*C.float)(&x[0]),
 		(*C.idx_t)(&xids[0]),
@@ -158,7 +146,7 @@ func (index *baseIndex) Search(x []float32, k int64) (
 	distances := make([]float32, int64(n)*k)
 	labels := make([]int64, int64(n)*k)
 	if c := C.faiss_Index_search(
-		index.Ptr(),
+		index.ptr,
 		C.idx_t(n),
 		(*C.float)(&x[0]),
 		C.idx_t(k),
@@ -179,11 +167,11 @@ func (index *baseIndex) RangeSearch(x []float32, radius float32) (
 		return nil, err
 	}
 	if c := C.faiss_Index_range_search(
-		index.Ptr(),
+		index.ptr,
 		C.idx_t(n),
 		(*C.float)(&x[0]),
 		C.float(radius),
-		result.Ptr(),
+		result.ptr,
 	); c != 0 {
 		return nil, GetLastError()
 	}
@@ -194,7 +182,7 @@ func (index *baseIndex) Assign(x []float32, k int64) ([]int64, error) {
 	n := len(x) / index.D()
 	labels := make([]int64, int64(n)*k)
 	if c := C.faiss_Index_assign(
-		index.Ptr(),
+		index.ptr,
 		C.idx_t(n),
 		(*C.float)(&x[0]),
 		(*C.idx_t)(&labels[0]),
@@ -206,7 +194,7 @@ func (index *baseIndex) Assign(x []float32, k int64) ([]int64, error) {
 }
 
 func (index *baseIndex) Reset() error {
-	if c := C.faiss_Index_reset(index.Ptr()); c != 0 {
+	if c := C.faiss_Index_reset(index.ptr); c != 0 {
 		return GetLastError()
 	}
 	return nil
@@ -214,7 +202,7 @@ func (index *baseIndex) Reset() error {
 
 func (index *baseIndex) RemoveIDs(selector IDSelector) (int, error) {
 	var removed C.size_t
-	if c := C.faiss_Index_remove_ids(index.Ptr(), selector.Ptr(), &removed); c != 0 {
+	if c := C.faiss_Index_remove_ids(index.ptr, selector.Ptr(), &removed); c != 0 {
 		return 0, GetLastError()
 	}
 	return int(removed), nil
@@ -228,3 +216,11 @@ func (index *baseIndex) RemoveIDs(selector IDSelector) (int, error) {
 // TODO: sa_code_size
 // TODO: sa_encode
 // TODO: sa_decode
+
+//
+// below non faiss methods
+//
+
+func (index *baseIndex) Ptr() *C.FaissIndex {
+	return index.ptr
+}

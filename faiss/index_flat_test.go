@@ -40,21 +40,6 @@ func ExampleNewIndexFlat() {
 	// Search index err=<nil>, ids: 0 1, distances: 1.00 0.80
 }
 
-func ExampleAsIndexFlat() {
-	index, err := faiss.NewIndex(4, "Flat", faiss.MetricInnerProduct)
-	fmt.Printf("Create index err=%v, dimension=%d, total=%d\n", err, index.D(), index.Ntotal())
-
-	flatIndex := faiss.AsIndexFlat(index)
-	// add to vectors by index
-	index.Add([]float32{0.5, 0.5, 0.5, 0.5, 0.3, 0.9, 0.3, 0.1})
-
-	fmt.Printf("Casted index type=%T, dimension=%d, total=%d\n", flatIndex, index.D(), index.Ntotal())
-
-	// Output:
-	// Create index err=<nil>, dimension=4, total=0
-	// Casted index type=*faiss.IndexFlat, dimension=4, total=2
-}
-
 func TestNewIndexFlatL2(t *testing.T) {
 	index, err := faiss.NewIndexFlatL2(100)
 	assert.Nil(t, err)
