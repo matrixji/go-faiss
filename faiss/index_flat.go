@@ -12,15 +12,15 @@ type IndexFlat struct {
 // NewIndexFlat creates a new flat index with dimension and metric.
 // Returns the new index and error
 func NewIndexFlat(d int, metric MetricType) (*IndexFlat, error) {
-	var index baseIndex
+	var ptr *C.FaissIndexFlat
 	if ret := C.faiss_IndexFlat_new_with(
-		&index.ptr,
+		&ptr,
 		C.idx_t(d),
 		C.FaissMetricType(metric),
 	); ret != 0 {
 		return nil, GetLastError()
 	}
-	return &IndexFlat{index}, nil
+	return &IndexFlat{*NewBaseIndex(ptr)}, nil
 }
 
 // Xb returns the index's vectors.
@@ -30,7 +30,7 @@ func NewIndexFlat(d int, metric MetricType) (*IndexFlat, error) {
 func (index *IndexFlat) Xb() []float32 {
 	var size C.size_t
 	var flaots *C.float
-	C.faiss_IndexFlat_xb(index.Ptr(), &flaots, &size)
+	C.faiss_IndexFlat_xb(index.ptr, &flaots, &size)
 	return (*[1 << 30]float32)(unsafe.Pointer(flaots))[:size:size]
 }
 
@@ -41,7 +41,7 @@ func (index *IndexFlat) ComputeDistanceSubset(
 ) ([]float32, error) {
 	distances := make([]float32, n*k)
 	if ret := C.faiss_IndexFlat_compute_distance_subset(
-		index.Ptr(),
+		index.ptr,
 		C.idx_t(n),
 		(*C.float)(&x[0]),
 		C.idx_t(k),
@@ -50,28 +50,6 @@ func (index *IndexFlat) ComputeDistanceSubset(
 		return distances, nil
 	}
 	return nil, GetLastError()
-}
-
-// AsIndexFlat casts index to flat index.
-// Returns nil if not a flat index
-func AsIndexFlat(index Index) *IndexFlat {
-	myBaseIndex, ok := index.(*baseIndex)
-	if !ok {
-		return nil
-	}
-
-	// return if could cast in golang level
-	myIndexFlat, ok := index.(*IndexFlat)
-	if ok {
-		return myIndexFlat
-	}
-
-	// cast at c_api level
-	ptr := C.faiss_IndexFlat_cast(myBaseIndex.Ptr())
-	if ptr == nil {
-		return nil
-	}
-	return &IndexFlat{baseIndex{ptr: nil, internalIndex: myBaseIndex}}
 }
 
 type IndexFlatIP struct {

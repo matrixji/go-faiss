@@ -52,15 +52,15 @@ func (result *RangeSearchResult) Lims() []int64 {
 
 // Labels returns labels/distances
 // the result for query i is labels[lims[i]:lims[i+1]]
-func (result *RangeSearchResult) Labels() (labels []int64, distances []float32) {
+func (result *RangeSearchResult) Labels() ([]int64, []float32) {
 	lims := result.Lims()
 	length := lims[len(lims)-1]
 	var cLabels *C.idx_t
 	var cDistances *C.float
 	C.faiss_RangeSearchResult_labels(result.ptr, &cLabels, &cDistances)
-	labels = (*[1 << 30]int64)(unsafe.Pointer(cLabels))[:length:length]
-	distances = (*[1 << 30]float32)(unsafe.Pointer(cDistances))[:length:length]
-	return
+	labels := (*[1 << 30]int64)(unsafe.Pointer(cLabels))[:length:length]
+	distances := (*[1 << 30]float32)(unsafe.Pointer(cDistances))[:length:length]
+	return labels, distances
 }
 
 // BufferSize return the buffer_size

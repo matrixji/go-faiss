@@ -7,13 +7,12 @@ import "errors"
 // CloneIndex clone index to new index.
 // Returns index and error.
 func CloneIndex(index Index) (Index, error) {
-	concreteIndex, ok := index.(*baseIndex)
-	if !ok {
-		return nil, errors.New("input index is not a baseIndex")
+	if index == nil {
+		return nil, errors.New("input index is nil")
 	}
 	var newIndex *C.FaissIndex
-	if ret := C.faiss_clone_index(concreteIndex.Ptr(), &newIndex); ret == 0 {
-		return &baseIndex{newIndex, nil}, nil
+	if ret := C.faiss_clone_index(index.Ptr(), &newIndex); ret == 0 {
+		return castFromFaissIndex(newIndex, index)
 	}
 	return nil, GetLastError()
 }
