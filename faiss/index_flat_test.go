@@ -2,8 +2,10 @@ package faiss_test
 
 import (
 	"fmt"
+	"testing"
 
 	"github.com/matrixji/go-faiss/faiss"
+	"github.com/stretchr/testify/assert"
 )
 
 func ExampleNewIndexFlat() {
@@ -38,11 +40,11 @@ func ExampleNewIndexFlat() {
 	// Search index err=<nil>, ids: 0 1, distances: 1.00 0.80
 }
 
-func ExampleAsFlatIndex() {
+func ExampleAsIndexFlat() {
 	index, err := faiss.NewIndex(4, "Flat", faiss.MetricInnerProduct)
 	fmt.Printf("Create index err=%v, dimension=%d, total=%d\n", err, index.D(), index.Ntotal())
 
-	flatIndex := faiss.AsFlatIndex(index)
+	flatIndex := faiss.AsIndexFlat(index)
 	// add to vectors by index
 	index.Add([]float32{0.5, 0.5, 0.5, 0.5, 0.3, 0.9, 0.3, 0.1})
 
@@ -51,4 +53,16 @@ func ExampleAsFlatIndex() {
 	// Output:
 	// Create index err=<nil>, dimension=4, total=0
 	// Casted index type=*faiss.IndexFlat, dimension=4, total=2
+}
+
+func TestNewIndexFlatL2(t *testing.T) {
+	index, err := faiss.NewIndexFlatL2(100)
+	assert.Nil(t, err)
+	assert.Equal(t, index.MetricType(), faiss.MetricL2)
+}
+
+func TestNewIndexFlatIP(t *testing.T) {
+	index, err := faiss.NewIndexFlatIP(100)
+	assert.Nil(t, err)
+	assert.Equal(t, index.MetricType(), faiss.MetricInnerProduct)
 }

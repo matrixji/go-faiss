@@ -4,7 +4,6 @@ package faiss
 // #include <faiss/c_api/index_factory_c.h>
 import "C"
 import (
-	"runtime"
 	"unsafe"
 )
 
@@ -17,15 +16,14 @@ import (
 func NewIndex(d int, description string, metric MetricType) (Index, error) {
 	desc := C.CString(description)
 	defer C.free(unsafe.Pointer(desc))
-	var index baseIndex
+	var ptr *C.FaissIndex
 	if ret := C.faiss_index_factory(
-		&index.ptr,
+		&ptr,
 		C.int(d),
 		desc,
 		C.FaissMetricType(metric),
 	); ret != 0 {
 		return nil, GetLastError()
 	}
-	runtime.SetFinalizer(&index, func(r *baseIndex) { r.free() })
-	return &index, nil
+	return NewBaseIndex(ptr), nil
 }
