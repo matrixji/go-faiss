@@ -2,8 +2,11 @@ package faiss_test
 
 import (
 	"fmt"
+	"runtime"
+	"testing"
 
 	"github.com/matrixji/go-faiss/faiss"
+	"github.com/stretchr/testify/assert"
 )
 
 func ExampleNewIDSelectorRange() {
@@ -19,7 +22,6 @@ func ExampleNewIDSelectorRange() {
 	// remove id [10, 90)
 	selector, _ := faiss.NewIDSelectorRange(10, 90)
 	removed, _ := index.RemoveIDs(selector)
-	selector = nil
 
 	fmt.Printf("Removed %d\n", removed)
 	fmt.Printf("Total %d\n", index.Ntotal())
@@ -41,7 +43,6 @@ func ExampleNewIDSelectorBatch() {
 	// remove id [10, 90)
 	selector, _ := faiss.NewIDSelectorBatch([]int64{1, 2, 3, 4})
 	removed, _ := index.RemoveIDs(selector)
-	selector = nil
 
 	fmt.Printf("Removed %d\n", removed)
 	fmt.Printf("Total %d\n", index.Ntotal())
@@ -50,4 +51,12 @@ func ExampleNewIDSelectorBatch() {
 	// Total 2
 	// Removed 1
 	// Total 1
+}
+
+func TestIdSelectorFree(t *testing.T) {
+	selector, _ := faiss.NewIDSelectorBatch([]int64{1})
+	assert.NotNil(t, selector)
+	selector = nil
+	runtime.GC()
+	// the free function should be covered
 }
