@@ -45,3 +45,17 @@ func TestNonExistIndex(t *testing.T) {
 	assert.Nil(t, index)
 	assert.NotNil(t, err)
 }
+
+func TestNewIndexGeneric(t *testing.T) {
+	index, err := faiss.NewIndex(4, "Flat,IDMap", faiss.MetricL2)
+	assert.Nil(t, err)
+	assert.NotNil(t, index)
+
+	indexIDMap, ok := index.(*faiss.IndexIDMap)
+	assert.True(t, ok)
+
+	indexFlat, ok := indexIDMap.SubIndex().(*faiss.IndexFlat)
+	assert.True(t, ok)
+	assert.Equal(t, indexFlat.MetricType(), faiss.MetricL2)
+
+}

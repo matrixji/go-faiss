@@ -21,4 +21,9 @@ func NewIndexIDMap(index Index) (*IndexIDMap, error) {
 	return myIndexIDMap, nil
 }
 
+// Return sub index
+func (index *IndexIDMap) SubIndex() Index {
+	return index.subIndex
+}
+
 // TODO: IndexIDMap2

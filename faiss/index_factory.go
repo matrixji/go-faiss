@@ -23,10 +23,6 @@ func castFromNewFaissIndex(faissIndex *C.FaissIndex) (Index, error) {
 	// - faiss_IndexRefineFlat_cast
 	// - faiss_IndexScalarQuantizer_cast
 
-	// IndexFlat (go-faiss using IndexFlat for IndexFlatL2 and IndexFlatIP)
-	if ptr := C.faiss_IndexFlat_cast(faissIndex); ptr != nil {
-		return &IndexFlat{*NewBaseIndex(faissIndex)}, nil
-	}
 	// IndexIDMap
 	if ptr := C.faiss_IndexIDMap_cast(faissIndex); ptr != nil {
 		// check if sub index is owned, should always true
@@ -41,6 +37,12 @@ func castFromNewFaissIndex(faissIndex *C.FaissIndex) (Index, error) {
 		}
 		return &IndexIDMap{*NewBaseIndex(faissIndex), nil}, nil
 	}
+
+	// IndexFlat (go-faiss using IndexFlat for IndexFlatL2 and IndexFlatIP)
+	if ptr := C.faiss_IndexFlat_cast(faissIndex); ptr != nil {
+		return &IndexFlat{*NewBaseIndex(faissIndex)}, nil
+	}
+
 	return nil, errors.New("cast c index to index error")
 }
 
@@ -53,7 +55,11 @@ func castFromFaissIndex(faissIndex *C.FaissIndex, fromIndex Index) (Index, error
 	}
 
 	if index, ok := fromIndex.(*IndexIDMap); ok {
-		return &IndexIDMap{*NewBaseIndex(faissIndex), index.subIndex}, nil
+		clonedSubIndex, err := CloneIndex(index.subIndex)
+		if err != nil {
+			return nil, err
+		}
+		return &IndexIDMap{*NewBaseIndex(faissIndex), clonedSubIndex}, nil
 	}
 
 	return castFromNewFaissIndex(faissIndex)
