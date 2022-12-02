@@ -23,3 +23,12 @@ func TestCloneIndexFromNil(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, index)
 }
+
+func TestCloneIndexForIDMap(t *testing.T) {
+	index, _ := faiss.NewIndex(4, "Flat,IDMap", faiss.MetricL2)
+	indexIDMap, _ := index.(*faiss.IndexIDMap)
+	indexIDMap.AddWithIDs([]float32{0.1, 0.1, 0.1, 0.1}, []int64{10000})
+	index2, _ := faiss.CloneIndex(index)
+	indexIDMap2, _ := index2.(*faiss.IndexIDMap)
+	assert.EqualValues(t, indexIDMap2.Ntotal(), 1)
+}
