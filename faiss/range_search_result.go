@@ -13,13 +13,8 @@ type RangeSearchResult struct {
 	ptr *C.FaissRangeSearchResult // internal pointer to RangeSearchResult
 }
 
-// Ptr return raw c pointer of RangeSearchResult
-func (result *RangeSearchResult) Ptr() *C.FaissRangeSearchResult {
-	return result.ptr
-}
-
 // Free destroy the resource for RangeSearchResult
-func (result *RangeSearchResult) Free() {
+func (result *RangeSearchResult) free() {
 	if result.ptr != nil {
 		C.faiss_RangeSearchResult_free(result.ptr)
 		result.ptr = nil
@@ -33,7 +28,7 @@ func NewRangeSearchResult(nq int) (*RangeSearchResult, error) {
 		return nil, GetLastError()
 	}
 	result := RangeSearchResult{ptr: ptr}
-	runtime.SetFinalizer(&result, func(r *RangeSearchResult) { r.Free() })
+	runtime.SetFinalizer(&result, func(r *RangeSearchResult) { r.free() })
 	return &result, nil
 }
 

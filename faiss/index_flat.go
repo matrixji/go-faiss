@@ -36,9 +36,11 @@ func (index *IndexFlat) Xb() []float32 {
 
 // ComputeDistanceSubset compute distance with a subset of vectors.
 // Returns corresponding output distances, size n * k, and the error
-func (index *IndexFlat) ComputeDistanceSubset(
-	n int64, x []float32, k int64, labels []int64,
-) ([]float32, error) {
+func (index *IndexFlat) ComputeDistanceSubset(x []float32, labels []int64) (
+	[]float32, error,
+) {
+	n := len(x) / index.D()
+	k := len(labels) / n
 	distances := make([]float32, n*k)
 	if ret := C.faiss_IndexFlat_compute_distance_subset(
 		index.ptr,
