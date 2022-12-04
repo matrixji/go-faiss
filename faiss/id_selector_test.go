@@ -56,7 +56,9 @@ func ExampleNewIDSelectorBatch() {
 func TestIdSelectorFree(t *testing.T) {
 	selector, _ := faiss.NewIDSelectorBatch([]int64{1})
 	assert.NotNil(t, selector)
-	selector = nil
+	selector, _ = faiss.NewIDSelectorRange(1, 10)
+	assert.NotNil(t, selector)
+	selector, _ = faiss.NewIDSelectorBatch([]int64{1})
+	assert.NotNil(t, selector)
 	runtime.GC()
-	// the free function should be covered
 }

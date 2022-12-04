@@ -39,6 +39,22 @@ func ExampleNewIndexFlat() {
 	// Add to index err=<nil>, total=2
 	// Search index err=<nil>, ids: 0 1, distances: 1.00 0.80
 }
+func TestFlatXb(t *testing.T) {
+	index, err := faiss.NewIndexFlatIP(2)
+	assert.Nil(t, err)
+	index.Add([]float32{0.1, 0.1, 0.3, 0.3})
+	floats := index.Xb()
+	assert.Equal(t, floats, []float32{0.1, 0.1, 0.3, 0.3})
+}
+
+func TestIVFComputeDistanceSubset(t *testing.T) {
+	index, _ := faiss.NewIndexFlatIP(2)
+	index.Add([]float32{1.0, 0.0, 0.6, 0.8, 0.0, 1.0, 0.8, 0.6})
+	distances, err := index.ComputeDistanceSubset([]float32{1.0, 0.0, 0.0, 1.0}, []int64{0, 1, 2, 1, 2, 3})
+	assert.Nil(t, err)
+	assert.Equal(t, len(distances), 6)
+	assert.InDeltaSlice(t, distances, []float32{1.0, 0.6, 0.0, 0.8, 1.0, 0.6}, 0.001)
+}
 
 func TestNewIndexFlatL2(t *testing.T) {
 	index, err := faiss.NewIndexFlatL2(100)

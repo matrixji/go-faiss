@@ -24,7 +24,7 @@ func (selector *baseIDSelector) Ptr() *C.FaissIDSelector {
 }
 
 // Free destroy the resource for baseIDSelector
-func (selector *baseIDSelector) Free() {
+func (selector *baseIDSelector) free() {
 	if selector.ptr != nil {
 		C.faiss_IDSelector_free(selector.ptr)
 		selector.ptr = nil
@@ -39,7 +39,7 @@ func NewIDSelectorRange(imin, imax int64) (IDSelector, error) {
 		return nil, GetLastError()
 	}
 	selector := baseIDSelector{(*C.FaissIDSelector)(ptr)}
-	runtime.SetFinalizer(&selector, func(selector *baseIDSelector) { selector.Free() })
+	runtime.SetFinalizer(&selector, func(selector *baseIDSelector) { selector.free() })
 	return &selector, nil
 }
 
@@ -54,6 +54,6 @@ func NewIDSelectorBatch(indices []int64) (IDSelector, error) {
 		return nil, GetLastError()
 	}
 	selector := baseIDSelector{ptr: (*C.FaissIDSelector)(ptr)}
-	runtime.SetFinalizer(&selector, func(selector *baseIDSelector) { selector.Free() })
+	runtime.SetFinalizer(&selector, func(selector *baseIDSelector) { selector.free() })
 	return &selector, nil
 }
