@@ -5,7 +5,13 @@ import "C"
 import "errors"
 
 // CloneIndex clone index to new index.
-// Returns index and error.
+//
+// Parameter:
+//   - index, the input index
+//
+// Returns:
+//   - Index, the new index
+//   - error, the error if has, or nil on success
 func CloneIndex(index Index) (Index, error) {
 	if index == nil {
 		return nil, errors.New("input index is nil")

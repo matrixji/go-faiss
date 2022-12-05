@@ -3,6 +3,7 @@ package faiss
 // #include <stdlib.h>
 // #include <faiss/c_api/index_factory_c.h>
 // #include <faiss/c_api/IndexFlat_c.h>
+// #include <faiss/c_api/IndexIVF_c.h>
 // #include <faiss/c_api/MetaIndexes_c.h>
 import "C"
 import (
@@ -10,7 +11,15 @@ import (
 	"unsafe"
 )
 
-func castFromNewFaissIndex(faissIndex *C.FaissIndex) (Index, error) {
+// castFromNewFaissIndex cast to the final index class
+//
+// Parameters:
+//   - faissIndexPtr, the just created new index
+//
+// Returns:
+//   - Index, the casted index
+//   - error, the failure reason, nil on success
+func castFromNewFaissIndex(faissIndexPtr *C.FaissIndex) (Index, error) {
 	// Try cast from: faiss_XYZ_cast
 	// - faiss_IndexFlat1D_cast
 	// - faiss_IndexIDMap2_cast
@@ -24,7 +33,7 @@ func castFromNewFaissIndex(faissIndex *C.FaissIndex) (Index, error) {
 	// - faiss_IndexScalarQuantizer_cast
 
 	// IndexIDMap
-	if ptr := C.faiss_IndexIDMap_cast(faissIndex); ptr != nil {
+	if ptr := C.faiss_IndexIDMap_cast(faissIndexPtr); ptr != nil {
 		// check if sub index is owned, should always true
 		if C.faiss_IndexIDMap_own_fields(ptr) == 1 {
 			C.faiss_IndexIDMap_set_own_fields(ptr, 0)
@@ -33,25 +42,64 @@ func castFromNewFaissIndex(faissIndex *C.FaissIndex) (Index, error) {
 			if err != nil {
 				return nil, err
 			}
-			return &IndexIDMap{*NewBaseIndex(faissIndex), subIndex}, nil
+			return &IndexIDMap{*newBaseIndex(faissIndexPtr), subIndex}, nil
 		}
-		return &IndexIDMap{*NewBaseIndex(faissIndex), nil}, nil
+		return &IndexIDMap{*newBaseIndex(faissIndexPtr), nil}, nil
 	}
 
-	// IndexFlat (go-faiss using IndexFlat for IndexFlatL2 and IndexFlatIP)
-	if ptr := C.faiss_IndexFlat_cast(faissIndex); ptr != nil {
-		return &IndexFlat{*NewBaseIndex(faissIndex)}, nil
+	// IndexIVF
+	if ptr := C.faiss_IndexIVF_cast(faissIndexPtr); ptr != nil {
+		// check if sub index is owned, should always true
+		if C.faiss_IndexIVF_own_fields(ptr) == 1 {
+			C.faiss_IndexIVF_set_own_fields(ptr, 0)
+			quantizerPtr := C.faiss_IndexIVF_quantizer(ptr)
+			quantizer, err := castFromNewFaissIndex(quantizerPtr)
+			if err != nil {
+				return nil, err
+			}
+			return &IndexIVF{*newBaseIndex(faissIndexPtr), quantizer}, nil
+		}
+		return &IndexIVF{*newBaseIndex(faissIndexPtr), nil}, nil
 	}
 
+	// IndexFlat, IndexFlatL2 or IndexFlatIP
+	if ptr := C.faiss_IndexFlat_cast(faissIndexPtr); ptr != nil {
+		metricType := C.faiss_Index_metric_type(faissIndexPtr)
+		if metricType == C.METRIC_INNER_PRODUCT {
+			return &IndexFlatIP{IndexFlat{*newBaseIndex(faissIndexPtr)}}, nil
+		}
+		if metricType == C.METRIC_L2 {
+			return &IndexFlatL2{IndexFlat{*newBaseIndex(faissIndexPtr)}}, nil
+		}
+		return &IndexFlat{*newBaseIndex(faissIndexPtr)}, nil
+	}
 	return nil, errors.New("cast c index to index error")
 }
 
-func castFromFaissIndex(faissIndex *C.FaissIndex, fromIndex Index) (Index, error) {
+// castFromFaissIndex cast to the final index class with prev index
+//
+// Parameters:
+//   - faissIndexPtr, the just created new index
+//   - fromIndex, the index copy/clone from
+//
+// Returns:
+//   - Index, the casted index
+//   - error, the failure reason, nil on success
+func castFromFaissIndex(faissIndexPtr *C.FaissIndex, fromIndex Index) (Index, error) {
 	if fromIndex == nil {
-		return castFromNewFaissIndex(faissIndex)
+		return castFromNewFaissIndex(faissIndexPtr)
 	}
+
+	if _, ok := fromIndex.(*IndexFlatIP); ok {
+		return &IndexFlatIP{IndexFlat{*newBaseIndex(faissIndexPtr)}}, nil
+	}
+
+	if _, ok := fromIndex.(*IndexFlatL2); ok {
+		return &IndexFlatL2{IndexFlat{*newBaseIndex(faissIndexPtr)}}, nil
+	}
+
 	if _, ok := fromIndex.(*IndexFlat); ok {
-		return &IndexFlat{*NewBaseIndex(faissIndex)}, nil
+		return &IndexFlat{*newBaseIndex(faissIndexPtr)}, nil
 	}
 
 	if index, ok := fromIndex.(*IndexIDMap); ok {
@@ -59,30 +107,35 @@ func castFromFaissIndex(faissIndex *C.FaissIndex, fromIndex Index) (Index, error
 		if err != nil {
 			return nil, err
 		}
-		return &IndexIDMap{*NewBaseIndex(faissIndex), clonedSubIndex}, nil
+		return &IndexIDMap{*newBaseIndex(faissIndexPtr), clonedSubIndex}, nil
 	}
 
-	return castFromNewFaissIndex(faissIndex)
+	return castFromNewFaissIndex(faissIndexPtr)
 }
 
-// NewIndex create index by metric with faiss's index_factory,
-// d for dimensions, metric for metric type,
-// description is a comma-separated list of components.
-// Returns the created index and error.
+// NewIndex create index by metric with faiss's index_factory.
+//
+// Paramsters:
+//   - d, for dimensions
+//   - metric, for metric type
+//
+// Returns:
+//   - Index, the created index
+//   - error, the failure reason, nil on success
 //
 // More details, see: https://github.com/facebookresearch/faiss/wiki/The-index-factory
 func NewIndex(d int, description string, metric MetricType) (Index, error) {
 
 	desc := C.CString(description)
 	defer C.free(unsafe.Pointer(desc))
-	var faissIndex *C.FaissIndex
+	var faissIndexPtr *C.FaissIndex
 	if ret := C.faiss_index_factory(
-		&faissIndex,
+		&faissIndexPtr,
 		C.int(d),
 		desc,
 		C.FaissMetricType(metric),
 	); ret != 0 {
 		return nil, GetLastError()
 	}
-	return castFromFaissIndex(faissIndex, nil)
+	return castFromFaissIndex(faissIndexPtr, nil)
 }

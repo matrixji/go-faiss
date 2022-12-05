@@ -54,8 +54,7 @@ func TestNewIndexGeneric(t *testing.T) {
 	indexIDMap, ok := index.(*faiss.IndexIDMap)
 	assert.True(t, ok)
 
-	indexFlat, ok := indexIDMap.SubIndex().(*faiss.IndexFlat)
+	_, ok = indexIDMap.SubIndex().(*faiss.IndexFlatL2)
 	assert.True(t, ok)
-	assert.Equal(t, indexFlat.MetricType(), faiss.MetricL2)
 
 }

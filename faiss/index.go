@@ -14,49 +14,103 @@ import (
 // not all methods are implemented for all indexes.
 type Index interface {
 	// D returns the dimension of the vectors.
+	//
+	// Returns:
+	//	 - int, the dimension of the vectors.
 	D() int
 
 	// IsTrained returns if the index has been trained
+	//
+	// Returns:
+	//   - bool, if the index has been trained
 	IsTrained() bool
 
 	// Ntotal returns total number of vectors in index
+	//
+	// Returns:
+	//	 - int64, total number of vectors in index
 	Ntotal() int64
 
 	// MetricType returns the metric type for index
+	//
+	// Returns:
+	//	 - MetricType, the metric type for index
 	MetricType() MetricType
 
 	// Train trains index with the input x
-	// 	the input x's length can be divided by D()
-	// Returns error
+	//
+	// Paramsters:
+	//	 - x, the input data, x's length can be divided by D()
+	//
+	// Returns:
+	//	 - error, failure reason, nil on success
 	Train(x []float32) error
 
 	// Add add to index with the input x
-	// 	the input x's length can be divided by D()
-	// Returns error
+	//
+	// Paramsters:
+	//	 - x, the input data, x's length can be divided by D()
+	//
+	// Returns:
+	//	 - error, failure reason, nil on success
 	Add(x []float32) error
 
 	// AddWithIDs add index with the input x and related ids by xids
-	//  the input x's length should be equals to len(xids) * D()
-	// Returns error
+	//
+	// Paramsters:
+	//	 - x, input x's length should be equals to len(xids) * D()
+	// 	 - xids, input id slice
+	//
+	// Returns:
+	//	 - error, failure reason, nil on success
 	AddWithIDs(x []float32, xids []int64) error
 
 	// Search do nn search for the input x and top k
-	// Return the k nearest neighbors, corresponding distances and error
+	//
+	// Paramsters:
+	// 	 - x, input vectors for query, x's length can be divided by D()
+	//   - k, top k
+	//
+	// Returns:
+	//   - []float32, the distances, length should be len(x)/D()*k
+	// 	 - []int64, the ret ids, ids length should be same as the didistances'
+	// 	 - error, the failure reason, nil on success
 	Search(x []float32, k int64) ([]float32, []int64, error)
 
 	// RangeSearch do range search for the input x and radius
-	// Returns vectors with distance < radius and error
+	// Paramsters:
+	// 	 - x, input vectors for query, x's length can be divided by D()
+	//   - radius, the distance threshold for query
+	//
+	// Returns:
+	//	 - *RangeSearchResult, the result
+	//	 - error, failure reason
+	//
+	// It vectors with distance < radius for L2 and distance > radius for IP
 	RangeSearch(x []float32, radius float32) (*RangeSearchResult, error)
 
 	// Assign similar to Search, but only return the neighbors
-	// Returns the neighbors and error
+	//
+	// Paramsters:
+	// 	 - x, input vectors for query, x's length can be divided by D()
+	//   - k, top k
+	//
+	// Returns:
+	// 	 - []int64, the ret ids
+	// 	 - error, the failure reason, nil on success
 	Assign(x []float32, k int64) ([]int64, error)
 
 	// Reset clear vectors from the index.
 	Reset() error
 
 	// RemoveIDs removes the vectors specified by selector from the index.
-	// Returns the number of elements removed and error
+	//
+	// Paramsters:
+	// 	 - selector, selector for select IDs
+	//
+	// Returns:
+	// 	 - int, removed items count
+	//	 - error, failure reason
 	RemoveIDs(selector IDSelector) (int, error)
 
 	//
@@ -67,12 +121,19 @@ type Index interface {
 	Ptr() *C.FaissIndex
 }
 
+// base abstract index
 type baseIndex struct {
 	ptr *C.FaissIndex // c pointer
 }
 
-// NewBaseIndex new baseIndex from C faiss index pointer
-func NewBaseIndex(ptr *C.FaissIndex) *baseIndex {
+// newBaseIndex new baseIndex from C faiss index pointer
+//
+// Parameters:
+//   - ptr, internal c api pointer to index
+//
+// Returns:
+//   - *baseIndex, index
+func newBaseIndex(ptr *C.FaissIndex) *baseIndex {
 	ret := &baseIndex{ptr}
 	runtime.SetFinalizer(ret, func(index *baseIndex) { index.Free() })
 	return ret
