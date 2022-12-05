@@ -22,6 +22,13 @@ func (result *RangeSearchResult) free() {
 }
 
 // NewRangeSearchResult create new RangeSearchResult
+//
+// Paramsters:
+//   - nq, number of queries
+//
+// Returns:
+//   - *RangeSearchResult, created result
+//   - error, failure reason
 func NewRangeSearchResult(nq int) (*RangeSearchResult, error) {
 	var ptr *C.FaissRangeSearchResult
 	if ret := C.faiss_RangeSearchResult_new(&ptr, C.idx_t(nq)); ret != 0 {
@@ -33,11 +40,17 @@ func NewRangeSearchResult(nq int) (*RangeSearchResult, error) {
 }
 
 // Nq return the number of queries.
+//
+// Returns:
+//   - int64, the number of queries
 func (result *RangeSearchResult) Nq() int64 {
 	return int64(C.faiss_RangeSearchResult_nq(result.ptr))
 }
 
 // Lims returns a slice contains for lims for returned labels/distances
+//
+// Returns:
+//   - []int64, the slice of lims
 func (result *RangeSearchResult) Lims() []int64 {
 	var lims *C.size_t
 	C.faiss_RangeSearchResult_lims(result.ptr, &lims)
@@ -46,6 +59,11 @@ func (result *RangeSearchResult) Lims() []int64 {
 }
 
 // Labels returns labels/distances
+//
+// Returns:
+//   - []int64, the labals returned by query
+//   - []float32, the distances returned by query
+//
 // the result for query i is labels[lims[i]:lims[i+1]]
 func (result *RangeSearchResult) Labels() ([]int64, []float32) {
 	lims := result.Lims()

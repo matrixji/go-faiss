@@ -22,10 +22,6 @@ func TestCloneIndexFromNil(t *testing.T) {
 	index, err := faiss.CloneIndex(nil)
 	assert.NotNil(t, err)
 	assert.Nil(t, index)
-
-	index, err = faiss.CloneIndex(faiss.NewBaseIndex(nil))
-	assert.NotNil(t, err)
-	assert.Nil(t, index)
 }
 
 func TestCloneIndexForIDMap(t *testing.T) {
