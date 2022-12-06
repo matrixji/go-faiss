@@ -10,16 +10,16 @@ import (
 
 func TestIndexReset(t *testing.T) {
 	index, _ := faiss.NewIndexFlatL2(2)
-	index.Add([]float32{0.1, 0.2, 0.3, 0.4})
+	_ = index.Add([]float32{0.1, 0.2, 0.3, 0.4})
 	assert.EqualValues(t, index.Ntotal(), 2)
-	index.Reset()
+	_ = index.Reset()
 	assert.EqualValues(t, index.Ntotal(), 0)
 }
 
 func ExampleIndex_Assign() {
 	topk := 2
 	index, _ := faiss.NewIndexFlatL2(2)
-	index.Add([]float32{0.1, 0.2, 0.3, 0.4, 0.5, 0.6})
+	_ = index.Add([]float32{0.1, 0.2, 0.3, 0.4, 0.5, 0.6})
 	ids, _ := index.Assign([]float32{0.3, 0.4, 0.1, 0.2}, int64(topk))
 	fmt.Printf("len(ids) = %d\n", len(ids))
 
