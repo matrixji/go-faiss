@@ -34,7 +34,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get -y install libopenblas-dev
-      - name: Build faiss
+      - name: Build faiss and install
         run: |
           mkdir -p ${{ github.workspace }}/faiss/build
           cd ${{ github.workspace }}/faiss/build
@@ -45,29 +45,26 @@ jobs:
                 -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/dest \
                 ..
           make -j $(nproc)
+          make install
+          cp -fr ${{ github.workspace }}/faiss/build/c_api/*.a ${{ github.workspace }}/dest/lib/
+      - name: Setup CGO flags for go
+        run: |
+          go env -w CGO_CFLAGS="-I${{ github.workspace }}/dest/include $(go env CGO_CFLAGS)"
+          go env -w CGO_LDFLAGS="-L${{ github.workspace }}/dest/lib $(go env CGO_LDFLAGS)"
       - name: Build and test for go-faiss
         run: |
           cd go-faiss
-          CGO_CFLAGS="-I${{ github.workspace }}/faiss"
-          CGO_CFLAGS="${CGO_CFLAGS} -I${{ github.workspace }}"
-          export CGO_CFLAGS="${CGO_CFLAGS} $(go env CGO_CFLAGS)"
-          CGO_LDFLAGS="-L${{ github.workspace }}/faiss/build/faiss"
-          CGO_LDFLAGS="${CGO_LDFLAGS} -L${{ github.workspace }}/faiss/build/c_api"
-          export CGO_LDFLAGS="${CGO_LDFLAGS} $(go env CGO_LDFLAGS)"
-
           go build ./...
           go test ./...
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.50.1
+          working-directory: ${{ github.workspace }}/go-faiss
       - name: Run coverage
         if: ${{ matrix.faiss_version == 'v1.7.3' }}
         run: |
           cd go-faiss
-          CGO_CFLAGS="-I${{ github.workspace }}/faiss"
-          CGO_CFLAGS="${CGO_CFLAGS} -I${{ github.workspace }}"
-          export CGO_CFLAGS="${CGO_CFLAGS} $(go env CGO_CFLAGS)"
-          CGO_LDFLAGS="-L${{ github.workspace }}/faiss/build/faiss"
-          CGO_LDFLAGS="${CGO_LDFLAGS} -L${{ github.workspace }}/faiss/build/c_api"
-          export CGO_LDFLAGS="${CGO_LDFLAGS} $(go env CGO_LDFLAGS)"
-
           go test -race -coverprofile=coverage.txt -covermode=atomic ./...
       - name: Upload coverage to Codecov
         if: ${{ matrix.faiss_version == 'v1.7.3' }}

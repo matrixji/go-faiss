@@ -11,7 +11,7 @@ import (
 
 func ExampleIndex_RangeSearch() {
 	index, _ := faiss.NewIndexFlatIP(4)
-	index.Add([]float32{
+	_ = index.Add([]float32{
 		0.8, 0.6, 0.0, 0.0,
 		0.5, 0.5, 0.5, 0.5,
 		1.0, 0.0, 0.0, 0.0,
@@ -39,7 +39,7 @@ func ExampleIndex_RangeSearch() {
 
 func TestRangeSearchResult_BufferSize(t *testing.T) {
 	index, _ := faiss.NewIndexFlatIP(4)
-	index.Add([]float32{
+	_ = index.Add([]float32{
 		0.8, 0.6, 0.0, 0.0,
 		0.5, 0.5, 0.5, 0.5,
 		1.0, 0.0, 0.0, 0.0,

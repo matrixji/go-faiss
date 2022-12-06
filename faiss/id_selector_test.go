@@ -15,7 +15,7 @@ func ExampleNewIDSelectorRange() {
 
 	// add 100 vectors(2*50) to index
 	for i := 0; i < 50; i++ {
-		index.Add([]float32{0.5, 0.5, 0.5, 0.5, 0.3, 0.9, 0.3, 0.1})
+		_ = index.Add([]float32{0.5, 0.5, 0.5, 0.5, 0.3, 0.9, 0.3, 0.1})
 	}
 	fmt.Printf("Total %d\n", index.Ntotal())
 
@@ -37,7 +37,7 @@ func ExampleNewIDSelectorBatch() {
 	index, _ := faiss.NewIndex(4, "Flat", faiss.MetricInnerProduct)
 
 	// add 2 to index
-	index.Add([]float32{0.5, 0.5, 0.5, 0.5, 0.3, 0.9, 0.3, 0.1})
+	_ = index.Add([]float32{0.5, 0.5, 0.5, 0.5, 0.3, 0.9, 0.3, 0.1})
 	fmt.Printf("Total %d\n", index.Ntotal())
 
 	// remove id [10, 90)

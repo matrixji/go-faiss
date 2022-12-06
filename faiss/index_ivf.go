@@ -59,12 +59,12 @@ func (index *IndexIVF) QuantizerTrainsAlone() int {
 //
 // Parameters:
 //   - other, the other index, after merge it will empty
-//   - addId, added to all moved ids
+//   - addID, added to all moved ids
 //
 // Returns:
 //   - error, failure reason
-func (index *IndexIVF) MergeFrom(other *IndexIVF, addId int64) error {
-	if ret := C.faiss_IndexIVF_merge_from(index.ptr, other.ptr, C.idx_t(addId)); ret != 0 {
+func (index *IndexIVF) MergeFrom(other *IndexIVF, addID int64) error {
+	if ret := C.faiss_IndexIVF_merge_from(index.ptr, other.ptr, C.idx_t(addID)); ret != 0 {
 		return GetLastError()
 	}
 	return nil
